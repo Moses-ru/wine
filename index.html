@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Винная карта мира | Professional</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================
+           БАЗОВЫЕ СТИЛИ
+           ========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 400;
+        }
+
+        body {
+            background: #f8f9fa;
+            color: #212529;
+        }
+
+        /* ==========================================
+           ВЕРХНЯЯ ПАНЕЛЬ
+           ========================================== */
+        .top-filters {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(114, 47, 55, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1500;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .top-filters h2 {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-right: auto;
+        }
+
+        /* Кнопка-бургер с фильтром */
+        .filter-burger {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .filter-burger:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .filter-burger.active {
+            background: white;
+            color: #722f37;
+        }
+
+        /* Панель фильтров */
+        .filters-panel {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            background: white;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1499;
+            display: none;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .filters-panel.active {
+            display: block;
+        }
+
+        /* ==========================================
+           КОНТЕЙНЕР КАРТЫ
+           ========================================== */
+        #map-container {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #e0e0e0;
+            z-index: 1;
+        }
+
+        /* Кастомные маркеры */
+        .custom-marker {
+            background: #722f37;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        /* ==========================================
+           МОБИЛЬНАЯ ПАНЕЛЬ С ВИНАМИ
+           ========================================== */
+        .wine-panel-mobile {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 65vh;
+            max-height: 100vh;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            transform: translateY(100%);
+            transition: none;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.25);
+        }
+
+        .wine-panel-mobile.active {
+            transform: translateY(0);
+        }
+
+        .wine-panel-mobile.expanded {
+            height: 100vh;
+            border-radius: 0;
+        }
+
+        .mobile-handle {
+            width: 50px;
+            height: 5px;
+            background: #d4b483;
+            border-radius: 3px;
+            margin: 12px auto;
+            cursor: grab;
+            transition: background 0.2s;
+        }
+
+        .mobile-handle:active {
+            cursor: grabbing;
+            background: #b8935f;
+        }
+
+        /* Оверлей */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1999;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* ==========================================
+           ФИЛЬТРЫ В ПАНЕЛИ
+           ========================================== */
+        .filters-container {
+            padding: 15px;
+            background: #f8f5f0;
+            border-bottom: 1px solid #e8ddd4;
+            flex-shrink: 0;
+        }
+
+        .filter-section {
+            padding: 15px;
+            border-bottom: 1px solid #e8ddd4;
+        }
+
+        .filter-section:last-child {
+            border-bottom: none;
+        }
+
+        .filter-section h4 {
+            font-size: 0.85rem;
+            color: #722f37;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #d4b483;
+            background: white;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            font-weight: 500;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .filter-btn:hover {
+            background: #f0e6d3;
+        }
+
+        .filter-btn.active {
+            background: #722f37;
+            color: white;
+            border-color: #722f37;
+        }
+
+        /* Кнопка очистки */
+        .clear-filters-btn {
+            width: 100%;
+            background: #722f37;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .clear-filters-btn:hover {
+            background: #5a252c;
+        }
+
+        /* ==========================================
+           СПИСОК ВИН
+           ========================================== */
+        .wine-list-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .placeholder {
+            padding: 40px 20px;
+            text-align: center;
+            color: #a09080;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .placeholder i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #d4b483;
+        }
+
+        .placeholder p {
+            font-size: 0.9rem;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .country-section {
+            padding-bottom: 20px;
+        }
+
+        .country-title {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            color: #722f37;
+            padding: 15px 0;
+            border-bottom: 2px solid #f0e6d3;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .wine-category {
+            margin-bottom: 20px;
+        }
+
+        .category-title {
+            font-size: 0.95rem;
+            color: #5a4a30;
+            margin: 15px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        /* Карточка вина с изображением */
+        .wine-card {
+            background: #f8f5f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid #d4b483;
+            display: flex;
+            gap: 12px;
+        }
+
+        .wine-card:active {
+            transform: scale(0.98);
+            background: #f0e6d3;
+        }
+
+        .wine-image {
+            width: 60px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: #e8ddd4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            color: #8a7462;
+            text-align: center;
+        }
+
+        .wine-image img {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .wine-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wine-name {
+            font-weight: 600;
+            color: #3d2914;
+            margin-bottom: 3px;
+            font-size: 0.9rem;
+        }
+
+        .wine-producer {
+            font-size: 0.8rem;
+            color: #8a7462;
+            margin-bottom: 2px;
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .wine-region {
+            font-size: 0.85rem;
+            color: #8a7462;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 400;
+        }
+
+        .wine-region i {
+            font-size: 0.7rem;
+        }
+
+        .wine-stats {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+
+        .wine-sweetness {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: #e8ddd4;
+            color: #5a4a30;
+            font-weight: 500;
+        }
+
+        .wine-alcohol {
+            font-size: 0.7rem;
+            color: #722f37;
+            font-weight: 600;
+        }
+
+        .wine-price {
+            font-size: 0.75rem;
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .wine-description {
+            font-size: 0.8rem;
+            color: #6d5d4b;
+            line-height: 1.4;
+            margin-top: 6px;
+            font-weight: 400;
+        }
+
+        .wine-details {
+            display: none;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e8ddd4;
+        }
+
+        .wine-details.active {
+            display: block;
+        }
+
+        .detail-item {
+            font-size: 0.75rem;
+            margin-bottom: 3px;
+            line-height: 1.3;
+            color: #5a4a30;
+            font-weight: 400;
+        }
+
+        .detail-item strong {
+            color: #722f37;
+            font-weight: 600;
+        }
+
+        /* ==========================================
+           ИКОНКИ
+           ========================================== */
+        .icon-sparkling { color: #f1c40f; }
+        .icon-red { color: #c0392b; }
+        .icon-white { color: #f39c12; }
+        .icon-orange { color: #e67e22; }
+        .icon-rose { color: #e74c3c; }
+        .icon-fruit { color: #9b59b6; }
+        .icon-nonalc { color: #3498db; }
+
+        /* ==========================================
+           ОШИБКИ
+           ========================================== */
+        .error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 3000;
+            display: none;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .error-message button {
+            margin-top: 15px;
+            background: #722f37;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* ==========================================
+           ДЕСКТОПНАЯ ВЕРСИЯ
+           ========================================== */
+        @media (min-width: 769px) {
+            .top-filters {
+                display: none;
+            }
+
+            #map-container {
+                top: 0;
+            }
+
+            .wine-panel-mobile, .overlay {
+                display: none !important;
+            }
+
+            .desktop-panel {
+                position: fixed;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: 420px;
+                background: white;
+                box-shadow: -2px 0 15px rgba(0,0,0,0.1);
+                display: flex;
+                flex-direction: column;
+                z-index: 1000;
+            }
+
+            .desktop-panel .filters-container {
+                flex-shrink: 0;
+            }
+
+            .desktop-panel .wine-list-content {
+                padding: 0 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ==========================================
+         ВЕРХНЯЯ ПАНЕЛЬ С БУРГЕР-МЕНЮ
+         ========================================== -->
+    <div class="top-filters">
+        <h2>🍷 Винная карта мира</h2>
+        <button class="filter-burger" id="filterBurger">
+            <i class="fas fa-filter"></i>
+        </button>
+    </div>
+
+    <!-- Панель фильтров (выпадающая) -->
+    <div class="filters-panel" id="filtersPanel">
+        <div class="filter-section">
+            <h4>Страна</h4>
+            <div class="filter-buttons" id="countryFilters">
+                <button class="filter-btn active" data-filter-type="country" data-filter-value="all">Все страны</button>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h4>Цвет вина</h4>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter-type="color" data-filter-value="all">Все</button>
+                <button class="filter-btn" data-filter-type="color" data-filter-value="красное">Красное</button>
+                <button class="filter-btn" data-filter-type="color" data-filter-value="белое">Белое</button>
+                <button class="filter-btn" data-filter-type="color" data-filter-value="другое">Другое</button>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h4>Сладость</h4>
+            <div class="filter-buttons" id="sweetnessFilters">
+                <button class="filter-btn active" data-filter-type="sweetness" data-filter-value="all">Все</button>
+                <button class="filter-btn" data-filter-type="sweetness" data-filter-value="Сухое">Сухое</button>
+                <button class="filter-btn" data-filter-type="sweetness" data-filter-value="Полусухое">Полусухое</button>
+                <button class="filter-btn" data-filter-type="sweetness" data-filter-value="Полусладкое">Полусладкое</button>
+                <button class="filter-btn" data-filter-type="sweetness" data-filter-value="Сладкое">Сладкое</button>
+                <button class="filter-btn" data-filter-type="sweetness" data-filter-value="Брют">Брют</button>
+                <button class="filter-btn" data-filter-type="sweetness" data-filter-value="Игристое">Игристое</button>
+                <button class="filter-btn" data-filter-type="sweetness" data-filter-value="Оранжевое">Оранжевое</button>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h4>Ценовой диапазон (₽)</h4>
+            <input type="range" class="price-range" id="minPrice" min="0" max="5000" value="0">
+            <input type="range" class="price-range" id="maxPrice" min="0" max="5000" value="5000">
+            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                <span id="minPriceLabel">0 ₽</span>
+                <span id="maxPriceLabel">5000 ₽</span>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <button class="clear-filters-btn" onclick="resetAllFilters()">
+                <i class="fas fa-undo"></i> Очистить все фильтры
+            </button>
+        </div>
+    </div>
+
+    <!-- Контейнер карты -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- Мобильная панель -->
+    <div class="wine-panel-mobile" id="winePanelMobile">
+        <div class="mobile-handle"></div>
+        <div class="filters-container" id="filtersContainer">
+            <!-- Динамические фильтры -->
+        </div>
+        <div class="wine-list-content">
+            <div class="placeholder" id="placeholderMobile">
+                <i class="fas fa-map-marked-alt"></i>
+                <p>Нажмите на страну на карте</p>
+            </div>
+            <div id="wineListMobile" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Оверлей -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Сообщение об ошибке -->
+    <div class="error-message" id="errorMessage">
+        <i class="fas fa-exclamation-triangle" style="color: #c0392b; font-size: 2rem; margin-bottom: 10px;"></i>
+        <p>Не удалось загрузить карту или вина</p>
+        <button onclick="location.reload()">Перезагрузить</button>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <script>
+        // ==========================================
+        // БАЗА ДАННЫХ ВИН
+        // ==========================================
+        const wineData = {
+            "Россия": {
+                coords: [45.3, 36.8],
+                wines: [
+                    {
+                        type: "домашние", color: "красное", name: "Макитра Красное",
+                        producer: "Таманский полуостров", region: "Краснодарский край",
+                        grape: "Красные местные сорта", sweetness: "Сухое/Полусладкое",
+                        alcohol: "11-13%", price: 450, image: "makitra_red.png",
+                        description: "Традиционное домашнее вино из Кубани. Насыщенный рубиновый цвет с фиолетовыми отблесками. Аромат черной смородины, вишни и специй. Тело среднее, танины мягкие. Идеально к мясу, колбасам и сырам."
+                    },
+                    {
+                        type: "домашние", color: "белое", name: "Макитра Белое",
+                        producer: "Таманский полуостров", region: "Краснодарский край",
+                        grape: "Белые местные сорта", sweetness: "Сухое/Полусладкое",
+                        alcohol: "10-12%", price: 450, image: "makitra_white.png",
+                        description: "Светлое домашнее вино с золотистым оттенком. Аромат цветочный с нотами белых ягод и минеральностью. Свежий, легкий вкус с хорошей кислотностью. Подходит к рыбе, морепродуктам и салатам."
+                    },
+                    {
+                        type: "игристые", color: "другое", name: "Макитра Брют",
+                        producer: "Таманский полуостров", region: "Краснодарский край",
+                        grape: "Алиготе, Рислинг", sweetness: "Брют",
+                        alcohol: "11.5%", price: 650, image: "makitra_brut.png",
+                        description: "Российское игристое вино классическим методом. Тонкая перляж, свежий цитрусовый аромат с нотами зеленого яблока. Элегантный аперитив, отлично сочетается с фруктами и десертами."
+                    },
+                    {
+                        type: "белые", color: "белое", name: "Флёр Дю Сюд Белое",
+                        producer: "Таманский полуостров", region: "Краснодарский край",
+                        grape: "Алиготе, Совиньон Блан", sweetness: "Сухое",
+                        alcohol: "12%", price: 550, image: "fleur_du_sud.png",
+                        description: "Элегантное белое вино с минеральным характером. Аромат цитрусовых, белых цветов и свежего хлеба. Среднее тело, хорошая кислотность. Идеально к ракушкам, пасте и овощным салатам."
+                    },
+                    {
+                        type: "оранжевые", color: "другое", name: "Мускат Эссе Анпланг Оранж",
+                        producer: "Массандра", region: "Крымский полуостров",
+                        grape: "Мускат", sweetness: "Оранжевое",
+                        alcohol: "13%", price: 890, image: "essee_muscat_orange.png",
+                        description: "Уникальное оранжевое вино из Крыма. Длительная мацерация на шкурке придает медовый цвет и насыщенный аромат. Тропические фрукты, цветы, специи. К экзотической кухне и сырам."
+                    },
+                    {
+                        type: "красные", color: "красное", name: "Высокий берег Сира",
+                        producer: "Высокий берег", region: "Краснодарский край",
+                        grape: "Сира (Шираз)", sweetness: "Сухое",
+                        alcohol: "13.5%", price: 720, image: "high_bank_syrah.png",
+                        description: "Темное красное вино с интенсивным ароматом черной смородины, вишни и перца. Полнотелое, с бархатистыми танинами. Отлично к стейкам, дичи и темному шоколаду."
+                    },
+                    {
+                        type: "розовые", color: "другое", name: "Высокий берег Цвайгельт",
+                        producer: "Высокий берег", region: "Краснодарский край",
+                        grape: "Цвайгельт", sweetness: "Сухое",
+                        alcohol: "12%", price: 680, image: "high_bank_zweigelt.png",
+                        description: "Нежное розовое с ароматом клубники, малины и цветов. Легкое тело, освежающая кислотность. Идеальное летнее вино, отлично к салатам, легким закускам и морепродуктам."
+                    }
+                ]
+            },
+            "Грузия": {
+                coords: [42.0, 43.5],
+                wines: [
+                    {
+                        type: "красные", color: "красное", name: "Саперави",
+                        producer: "Киндзмараули Марани", region: "Кахетия",
+                        grape: "Саперави", sweetness: "Сухое", alcohol: "12.5%",
+                        price: 1200, image: "saperavi_km.png",
+                        description: "Легендарное грузинское красное. Глубокий рубиновый цвет, аромат черной смородины, вишни, специй. Полнотелое, с бархатистыми танинами. К мясу, сырам, хинкали и плову."
+                    },
+                    {
+                        type: "красные", color: "красное", name: "Киндзмараули",
+                        producer: "Киндзмараули Марани", region: "Кахетия, Алазанская долина",
+                        grape: "Саперави", sweetness: "Полусладкое", alcohol: "11%",
+                        price: 980, image: "kindzmarauli_km.png",
+                        description: "Знаменитое полусладкое вино из Алазанской долины. Насыщенный рубиновый цвет, аромат черешни, вишни и шоколада. Мягкие танины, сладкий финиш. К десертам, фруктам и сложным соусам."
+                    },
+                    {
+                        type: "оранжевые", color: "другое", name: "Бесини Квеври Уайт",
+                        producer: "Бесини", region: "Кахетия",
+                        grape: "Ркацители, Кихиури", sweetness: "Оранжевое", alcohol: "13.5%",
+                        price: 1890, image: "besini_qvevri.png",
+                        description: "Оранжевое вино в традиционной квеври. 6 месяцев на шкурке. Насыщенный янтарный цвет, аромат цитрусовых, меда, орехов и специй. Танинное, структурированное. К твердым сырам и овощным блюдам."
+                    },
+                    {
+                        type: "белые", color: "белое", name: "Алазанская Долина",
+                        producer: "Киндзмараули Марани", region: "Кахетия, Алазанская долина",
+                        grape: "Ркацители", sweetness: "Полусладкое", alcohol: "11%",
+                        price: 520, image: "alazani_valley.png",
+                        description: "Полусладкое белое с золотистым цветом. Аромат тропических фруктов, меда и цветов. Свежий, фруктовый вкус с хорошей кислотностью. К фруктам, десертам и легким закускам."
+                    }
+                ]
+            },
+            "Италия": {
+                coords: [42.5, 12.5],
+                wines: [
+                    {
+                        type: "игристые", color: "другое", name: "Просекко",
+                        producer: "Casa Defrà", region: "Венето",
+                        grape: "Глера", sweetness: "Сухое", alcohol: "11%",
+                        price: 1250, image: "prosecco_casa_defra.png",
+                        description: "Классическое итальянское игристое. Тонкая перляж, аромат груши, яблока и цветов белой акации. Свежее, легкое, с минеральным финишем. Отличный аперитив к морепродуктам."
+                    },
+                    {
+                        type: "красные", color: "красное", name: "Кьянти",
+                        producer: "Conti Serristori", region: "Тоскана",
+                        grape: "Санджовезе", sweetness: "Сухое", alcohol: "13%",
+                        price: 1350, image: "chianti.png",
+                        description: "Знаменитое тосканское вино. Рубиновый цвет, аромат вишни, сливы и трав. Среднее тело, свежая кислотность, танины средние. К пасте, пицце и мясным соусам."
+                    }
+                ]
+            },
+            "Германия": {
+                coords: [51.0, 10.0],
+                wines: [
+                    {
+                        type: "игристые", color: "другое", name: "Рислинг Зект Ханс Баер",
+                        producer: "Hans Bauer", region: "Рейнхессен",
+                        grape: "Рислинг", sweetness: "Сухое", alcohol: "12%",
+                        price: 1650, image: "riesling_sekt_hans_bauer.png",
+                        description: "Немецкий игристый Рислинг. Тонкие пузырьки, аромат яблока, цитрусовых и минералов. Свежий, сухой, с долгим послевкусием. К рыбе, морепродуктам и азиатской кухне."
+                    }
+                ]
+            },
+            "Австрия": {
+                coords: [47.5, 14.0],
+                wines: [
+                    {
+                        type: "белые", color: "белое", name: "Шлосс Бокфлисс Адель",
+                        producer: "Schloss Bockfließ", region: "Зальцкаммергут",
+                        grape: "Грюнер Вельтлинер", sweetness: "Сухое", alcohol: "12.5%",
+                        price: 1890, image: "schloss_bockfliess_adel.png",
+                        description: "Элегантное австрийское белое. Аромат белых цветов, яблока и белого перца. Легкое тело, минеральность, свежая кислотность. К рыбе, морепродуктам и австрийской кухне."
+                    }
+                ]
+            },
+            "Испания": {
+                coords: [40.0, -4.0],
+                wines: [
+                    {
+                        type: "игристые", color: "другое", name: "Кава Дос Капричос",
+                        producer: "Dos Caprichos", region: "Каталония",
+                        grape: "Макабео, Парельяда, Шарелло", sweetness: "Брют", alcohol: "11.5%",
+                        price: 920, image: "cava_dos_caprichos.png",
+                        description: "Испанская кава классическим методом. Тонкие пузырьки, аромат яблока, цитрусовых и минералов. Сухая, свежая, с долгим финишем. К морепродуктам, паштетам и овощным закускам."
+                    },
+                    {
+                        type: "красные", color: "красное", name: "Асьеда де Аро Крианса Риоха",
+                        producer: "Aseida de Aro", region: "Риоха",
+                        grape: "Темпранильо", sweetness: "Сухое", alcohol: "13.5%",
+                        price: 1380, image: "aseida_crianza_rioja.png",
+                        description: "Выдержанное красное вино в дубе 12 месяцев. Аромат черной смородины, ванили, кожи и специй. Полное тело, мягкие танины. К стейкам, ягнятине и зрелым сырам."
+                    }
+                ]
+            },
+            "Аргентина": {
+                coords: [-38.0, -64.0],
+                wines: [
+                    {
+                        type: "красные", color: "красное", name: "Demons & Angels Malbec",
+                        producer: "Demons & Angels", region: "Мендоса",
+                        grape: "Мальбек", sweetness: "Сухое", alcohol: "14%",
+                        price: 1280, image: "demons_angels_malbec.png",
+                        description: "Аргентинский Мальбек нового света. Глубокий фиолетовый цвет, аромат черной смородины, ванили и кофе. Полнотелое, с насыщенными танинами. К стейкам, барбекю и дичи."
+                    }
+                ]
+            },
+            "Чили": {
+                coords: [-35.0, -71.0],
+                wines: [
+                    {
+                        type: "белые", color: "белое", name: "Santa Carolina Sauvignon Blanc",
+                        producer: "Santa Carolina", region: "Центральная долина",
+                        grape: "Совиньон Блан", sweetness: "Сухое", alcohol: "12.5%",
+                        price: 850, image: "santa_carolina_sauvignon.png",
+                        description: "Чилийское белое вино. Аромат трав, цитрусовых и тропических фруктов. Свежий, минеральный, с хорошей кислотностью. К рыбе, морепродуктам, салатам и овощным блюдам."
+                    }
+                ]
+            },
+            "Австралия": {
+                coords: [-35.0, 149.0],
+                wines: [
+                    {
+                        type: "красные", color: "красное", name: "Old Bin Track Cabernet Sauvignon",
+                        producer: "Old Bin Track", region: "Южная Австралия",
+                        grape: "Каберне Совиньон", sweetness: "Сухое", alcohol: "14.5%",
+                        price: 1420, image: "old_bin_track_cabernet.png",
+                        description: "Крепкое австралийское красное. Аромат черной смородины, кедра, ванили и специй. Полнотелое, с мощными танинами. К стейкам, барбекю и зрелым сырам."
+                    }
+                ]
+            },
+            "Армения": {
+                coords: [40.0, 45.0],
+                wines: [
+                    {
+                        type: "плодовые", color: "другое", name: "Хоги Гранатовое",
+                        producer: "Hogi", region: "Араратская долина",
+                        grape: "Гранат", sweetness: "Полусладкое", alcohol: "12%",
+                        price: 590, image: "hogi_granat.png",
+                        description: "Плодовое вино из граната. Насыщенный рубиновый цвет, аромат граната, ягод и специй. Полусладкое, с освежающей кислотностью. К десертам, фруктам и острым блюдам."
+                    }
+                ]
+            }
+        };
+
+        // ==========================================
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ==========================================
+        let map;
+        let currentFilters = { country: 'all', color: 'all', sweetness: 'all', minPrice: 0, maxPrice: 5000 };
+        let selectedCountry = null;
+        let isMobile = window.innerWidth <= 768;
+        let markers = [];
+        let panelState = 'collapsed';
+
+        // ==========================================
+        // ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🍷 Инициализация профессиональной карты вина...');
+            initMap();
+            initTopFilters();
+            initSwipePanel();
+            initEventListeners();
+            generateCountryFilterButtons();
+        });
+
+        // ==========================================
+        // ИНИЦИАЛИЗАЦИЯ КАРТЫ
+        // ==========================================
+        function initMap() {
+            try {
+                if (typeof L === 'undefined') throw new Error('Leaflet не загружен');
+                
+                map = L.map('map', {
+                    zoomControl: true,
+                    attributionControl: false,
+                    minZoom: 2,
+                    maxZoom: 18,
+                    worldCopyJump: true
+                }).setView([30, 0], 2);
+
+                if (!navigator.onLine) {
+                    showError('Отсутствует интернет-соединение');
+                    return;
+                }
+
+                const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '',
+                    timeout: 5000
+                });
+
+                tileLayer.on('tileerror', (error) => console.warn('Ошибка тайла:', error));
+                tileLayer.addTo(map);
+                console.log('✅ Карта инициализирована');
+
+                createMarkers();
+            } catch (error) {
+                console.error('❌ Ошибка карты:', error);
+                showError(error.message);
+            }
+        }
+
+        // ==========================================
+        // СОЗДАНИЕ МАРКЕРОВ
+        // ==========================================
+        function createMarkers() {
+            try {
+                Object.entries(wineData).forEach(([country, data]) => {
+                    const marker = L.marker(data.coords, {
+                        icon: L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `<div class="custom-marker">${data.wines.length}</div>`,
+                            iconSize: [44, 44], iconAnchor: [22, 22],
+                            popupAnchor: [0, -20]
+                        })
+                    });
+
+                    marker.on('click', () => selectCountry(country));
+                    marker.bindPopup(`
+                        <div style="text-align: center; padding: 8px; font-family: Montserrat, sans-serif;">
+                            <strong style="color: #722f37; font-size: 1.1rem;">${country}</strong><br>
+                            <span style="color: #6d5d4b;">${data.wines.length} вин(а)</span>
+                        </div>
+                    `);
+                    
+                    marker.addTo(map);
+                    markers.push(marker);
+                });
+                console.log('✅ Маркеры созданы:', markers.length);
+            } catch (error) {
+                console.error('❌ Ошибка маркеров:', error);
+            }
+        }
+
+        // ==========================================
+        // ГЕНЕРАЦИЯ КНОПОК СТРАН ДЛЯ ФИЛЬТРОВ
+        // ==========================================
+        function generateCountryFilterButtons() {
+            const container = document.getElementById('countryFilters');
+            if (!container) return;
+            
+            // Очищаем, оставляя кнопку "Все страны"
+            container.innerHTML = '<button class="filter-btn active" data-filter-type="country" data-filter-value="all">Все страны</button>';
+            
+            // Добавляем кнопки для каждой страны
+            Object.keys(wineData).sort().forEach(country => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.dataset.filterType = 'country';
+                btn.dataset.filterValue = country;
+                btn.textContent = country;
+                container.appendChild(btn);
+            });
+        }
+
+        // ==========================================
+        // ВЕРХНИЕ ФИЛЬТРЫ (БУРГЕР-МЕНЮ)
+        // ==========================================
+        function initTopFilters() {
+            // Кнопка-бургер
+            const burger = document.getElementById('filterBurger');
+            if (burger) {
+                burger.addEventListener('click', toggleFiltersPanel);
+            }
+            
+            // Ценовой слайдер
+            const minPrice = document.getElementById('minPrice');
+            const maxPrice = document.getElementById('maxPrice');
+            const minLabel = document.getElementById('minPriceLabel');
+            const maxLabel = document.getElementById('maxPriceLabel');
+            
+            if (minPrice && minLabel) {
+                minPrice.addEventListener('input', (e) => {
+                    currentFilters.minPrice = parseInt(e.target.value);
+                    minLabel.textContent = e.target.value + ' ₽';
+                    applyTopFilters();
+                });
+            }
+            
+            if (maxPrice && maxLabel) {
+                maxPrice.addEventListener('input', (e) => {
+                    currentFilters.maxPrice = parseInt(e.target.value);
+                    maxLabel.textContent = e.target.value + ' ₽';
+                    applyTopFilters();
+                });
+            }
+        }
+
+        function toggleFiltersPanel() {
+            const panel = document.getElementById('filtersPanel');
+            const burger = document.getElementById('filterBurger');
+            
+            panel.classList.toggle('active');
+            burger.classList.toggle('active');
+            
+            // Закрытие при клике вне панели
+            if (panel.classList.contains('active')) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeFiltersPanelOutside);
+                }, 100);
+            }
+        }
+
+        function closeFiltersPanelOutside(e) {
+            const panel = document.getElementById('filtersPanel');
+            const burger = document.getElementById('filterBurger');
+            
+            if (!panel.contains(e.target) && !burger.contains(e.target)) {
+                panel.classList.remove('active');
+                burger.classList.remove('active');
+                document.removeEventListener('click', closeFiltersPanelOutside);
+            }
+        }
+
+        // ==========================================
+        // ПРИМЕНЕНИЕ ФИЛЬТРОВ К КАРТЕ
+        // ==========================================
+        function applyTopFilters() {
+            // Очищаем карту
+            markers.forEach(marker => marker.remove());
+            markers = [];
+            
+            // Определяем, какие страны показывать
+            let countriesToShow = [];
+            
+            if (currentFilters.country !== 'all') {
+                // Если выбрана конкретная страна - показываем только её
+                if (wineData[currentFilters.country]) {
+                    countriesToShow = [currentFilters.country];
+                }
+            } else {
+                // Иначе фильтруем по цвету, сладости и цене
+                countriesToShow = Object.entries(wineData).filter(([country, data]) => {
+                    const hasMatchingWines = data.wines.some(wine => {
+                        const colorMatch = currentFilters.color === 'all' || wine.color === currentFilters.color;
+                        const sweetnessMatch = currentFilters.sweetness === 'all' || wine.sweetness === currentFilters.sweetness;
+                        const priceMatch = wine.price >= currentFilters.minPrice && wine.price <= currentFilters.maxPrice;
+                        return colorMatch && sweetnessMatch && priceMatch;
+                    });
+                    return hasMatchingWines;
+                }).map(([country]) => country);
+            }
+            
+            // Создаем маркеры для отфильтрованных стран
+            countriesToShow.forEach(country => {
+                const data = wineData[country];
+                const marker = L.marker(data.coords, {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div class="custom-marker">${data.wines.length}</div>`,
+                        iconSize: [44, 44], iconAnchor: [22, 22],
+                        popupAnchor: [0, -20]
+                    })
+                });
+                
+                marker.on('click', () => selectCountry(country));
+                marker.bindPopup(`
+                    <div style="text-align: center; padding: 8px; font-family: Montserrat, sans-serif;">
+                        <strong style="color: #722f37;">${country}</strong><br>
+                        <span style="color: #6d5d4b;">${data.wines.length} вин(а)</span>
+                    </div>
+                `);
+                marker.addTo(map);
+                markers.push(marker);
+            });
+            
+            console.log('📍 Отображается стран:', countriesToShow.length);
+        }
+
+        // ==========================================
+        // ВЫБОР СТРАНЫ
+        // ==========================================
+        function selectCountry(country) {
+            selectedCountry = country;
+            
+            if (isMobile) {
+                openMobilePanel(country);
+            } else {
+                renderDesktopPanel(country);
+            }
+
+            const coords = wineData[country].coords;
+            map.setView(coords, Math.max(map.getZoom(), 4), {
+                animate: true,
+                duration: 0.5
+            });
+        }
+
+        // ==========================================
+        // СВАЙП ПАНЕЛИ
+        // ==========================================
+        function initSwipePanel() {
+            const panel = document.getElementById('winePanelMobile');
+            const handle = panel.querySelector('.mobile-handle');
+            
+            if (!handle) return;
+            
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            
+            const startDrag = (e) => {
+                isDragging = true;
+                startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                panel.style.transition = 'none';
+                const rect = panel.getBoundingClientRect();
+                panelStartY = rect.top;
+                e.preventDefault();
+            };
+            
+            const drag = (e) => {
+                if (!isDragging) return;
+                currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                const deltaY = currentY - startY;
+                const newTop = panelStartY + deltaY;
+                
+                const maxTop = 0;
+                const minTop = window.innerHeight * 0.35;
+                
+                if (newTop >= maxTop && newTop <= minTop) {
+                    panel.style.transform = `translateY(${newTop}px)`;
+                }
+            };
+            
+            const endDrag = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const deltaY = currentY - startY;
+                const threshold = 100;
+                
+                panel.style.transition = 'transform 0.3s ease-in-out';
+                
+                if (deltaY < -threshold && panelState !== 'expanded') {
+                    panel.classList.add('expanded');
+                    panelState = 'expanded';
+                    panel.style.transform = 'translateY(0)';
+                } else if (deltaY > threshold && panelState !== 'collapsed') {
+                    closeMobilePanel();
+                } else {
+                    panel.style.transform = '';
+                    panel.classList.remove('expanded');
+                    panelState = 'normal';
+                }
+            };
+            
+            handle.addEventListener('mousedown', startDrag);
+            handle.addEventListener('touchstart', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag);
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        }
+
+        // ==========================================
+        // ОТКРЫТИЕ/ЗАКРЫТИЕ ПАНЕЛИ
+        // ==========================================
+        function openMobilePanel(country) {
+            try {
+                const panel = document.getElementById('winePanelMobile');
+                const overlay = document.getElementById('overlay');
+                const placeholder = document.getElementById('placeholderMobile');
+                
+                selectedCountry = country;
+                panelState = 'normal';
+                
+                generateDynamicFilters(country);
+                renderMobileWineList(country);
+                
+                panel.classList.add('active');
+                panel.classList.remove('expanded');
+                overlay.classList.add('active');
+                placeholder.style.display = 'none';
+                
+                panel.style.transform = '';
+                panel.scrollTop = 0;
+                
+                console.log('📱 Панель открыта для:', country);
+            } catch (error) {
+                console.error('❌ Ошибка открытия панели:', error);
+            }
+        }
+
+        function closeMobilePanel() {
+            const panel = document.getElementById('winePanelMobile');
+            const overlay = document.getElementById('overlay');
+            
+            panel.classList.remove('active', 'expanded');
+            overlay.classList.remove('active');
+            selectedCountry = null;
+            panelState = 'collapsed';
+            
+            currentFilters = { country: 'all', color: 'all', sweetness: 'all', minPrice: 0, maxPrice: 5000 };
+            
+            console.log('📱 Панель закрыта');
+        }
+
+        // ==========================================
+        // ДИНАМИЧЕСКИЕ ФИЛЬТРЫ В ПАНЕЛИ
+        // ==========================================
+        function generateDynamicFilters(country) {
+            const container = document.getElementById('filtersContainer');
+            const wines = wineData[country].wines;
+            
+            const colors = new Set();
+            const sweetnesses = new Set();
+            
+            wines.forEach(wine => {
+                colors.add(wine.color);
+                sweetnesses.add(wine.sweetness);
+            });
+            
+            let html = '';
+            
+            if (colors.size > 1) {
+                html += `
+                    <div class="filter-section">
+                        <h4>Цвет</h4>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-filter-type="color" data-filter-value="all">Все</button>
+                `;
+                const colorLabels = { 'красное': 'Красное', 'белое': 'Белое', 'другое': 'Другое' };
+                Array.from(colors).sort().forEach(color => {
+                    if (colorLabels[color]) {
+                        html += `<button class="filter-btn" data-filter-type="color" data-filter-value="${color}">${colorLabels[color]}</button>`;
+                    }
+                });
+                html += `</div></div>`;
+            }
+            
+            if (sweetnesses.size > 1) {
+                html += `
+                    <div class="filter-section">
+                        <h4>Сладость</h4>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-filter-type="sweetness" data-filter-value="all">Все</button>
+                `;
+                Array.from(sweetnesses).sort().forEach(sweetness => {
+                    html += `<button class="filter-btn" data-filter-type="sweetness" data-filter-value="${sweetness}">${sweetness}</button>`;
+                });
+                html += `</div></div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // РЕНДЕРИНГ СПИСКА ВИН
+        // ==========================================
+        function renderMobileWineList(country) {
+            const container = document.getElementById('wineListMobile');
+            container.innerHTML = generateFilteredWineHTML(country, 'wineListMobile');
+            container.style.display = 'block';
+        }
+
+        function renderDesktopPanel(country) {
+            // Заглушка для десктопной версии
+            console.log('🖥️ Десктопная панель для:', country);
+        }
+
+        // ==========================================
+        // ФИЛЬТРАЦИЯ ВИН
+        // ==========================================
+        function filterWines(wines) {
+            return wines.filter(wine => {
+                // Игнорируем currentFilters.country, так как вино уже из выбранной страны
+                const colorMatch = currentFilters.color === 'all' || wine.color === currentFilters.color;
+                const sweetnessMatch = currentFilters.sweetness === 'all' || wine.sweetness === currentFilters.sweetness;
+                const priceMatch = wine.price >= currentFilters.minPrice && wine.price <= currentFilters.maxPrice;
+                return colorMatch && sweetnessMatch && priceMatch;
+            });
+        }
+
+        // ==========================================
+        // ГЕНЕРАЦИЯ HTML ДЛЯ ОТФИЛЬТРОВАННЫХ ВИН
+        // ==========================================
+        function generateFilteredWineHTML(country, containerId) {
+            // Проверка безопасности
+            if (!wineData[country] || !wineData[country].wines) {
+                console.error(`❌ Данные о винах для страны "${country}" не найдены`);
+                return `<div class="placeholder"><p>Ошибка: данные о винах не найдены</p></div>`;
+            }
+            
+            const allWines = wineData[country].wines;
+            const filteredWines = filterWines(allWines);
+            
+            if (filteredWines.length === 0) {
+                return `
+                    <div class="placeholder">
+                        <i class="fas fa-filter" style="color: #d4b483;"></i>
+                        <p>Нет вин по выбранным фильтрам</p>
+                        <button class="filter-btn" onclick="resetCountryFilters()" style="margin-top: 15px;">Сбросить фильтры</button>
+                    </div>
+                `;
+            }
+            
+            let html = `<div class="country-section">`;
+            html += `<div class="country-title">
+                        <i class="fas fa-flag"></i> ${country}
+                     </div>`;
+            
+            const grouped = {};
+            filteredWines.forEach(wine => {
+                const groupKey = wine.type === 'плодовые' ? 'плодовые' : wine.color;
+                if (!grouped[groupKey]) grouped[groupKey] = [];
+                grouped[groupKey].push(wine);
+            });
+            
+            const groupLabels = {
+                'красное': 'Красные вина',
+                'белое': 'Белые вина',
+                'другое': 'Другие вина',
+                'плодовые': 'Плодовые вина'
+            };
+            
+            Object.entries(grouped).sort().forEach(([groupKey, wines]) => {
+                const iconClass = getIconClass(groupKey);
+                html += `<div class="wine-category">
+                            <div class="category-title">
+                                <i class="fas fa-wine-bottle ${iconClass}"></i>
+                                ${groupLabels[groupKey] || groupKey}
+                            </div>`;
+                
+                wines.forEach((wine, index) => {
+                    const cardId = `${containerId}-${country}-${groupKey}-${index}`;
+                    const imagePath = wine.image || 'no_image.png';
+                    
+                    html += `<div class="wine-card" onclick="toggleDetails('${cardId}')">
+                                <div class="wine-image">
+                                    <img src="${imagePath}" alt="${wine.name}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA2MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2U4ZGRkNCIvPgo8cGF0aCBkPSJNMzAgNDBMMTggNTJIMTQ0VjI4TDMwIDQwWiIgZmlsbD0iIzhhNzQ2MiIvPgo8cGF0aCBkPSJNMTggNTJMMzAgNjRMNDIgNTJIMThaIiBmaWxsPSIjOGE3NDYyIi8+Cjwvc3ZnPg==';">
+                                </div>
+                                <div class="wine-info">
+                                    <div class="wine-name">${wine.name}</div>`;
+                    
+                    if (wine.producer) {
+                        html += `<div class="wine-producer">${wine.producer}</div>`;
+                    }
+                    
+                    html += `<div class="wine-region">
+                                <i class="fas fa-map-pin"></i> ${wine.region}
+                            </div>
+                            <div class="wine-stats">
+                                <span class="wine-sweetness">${wine.sweetness}</span>
+                                <span class="wine-alcohol">${wine.alcohol}</span>
+                                <span class="wine-price">${wine.price} ₽</span>
+                            </div>
+                            <div class="wine-description">${wine.description}</div>
+                            <div class="wine-details" id="${cardId}">
+                                <div class="detail-item">
+                                    <strong>Сорт:</strong> ${wine.grape}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Стиль:</strong> ${wine.sweetness}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Крепость:</strong> ${wine.alcohol}
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Цена:</strong> ${wine.price} ₽
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                
+                html += `</div>`;
+            });
+            
+            html += `</div>`;
+            return html;
+        }
+
+        // ==========================================
+        // ОСТАЛЬНЫЕ ФУНКЦИИ
+        // ==========================================
+        function getIconClass(groupKey) {
+            const icons = {
+                "красное": "icon-red",
+                "белое": "icon-white",
+                "другое": "icon-orange",
+                "плодовые": "icon-fruit",
+                "игристые": "icon-sparkling",
+                "оранжевые": "icon-orange",
+                "розовые": "icon-rose"
+            };
+            return icons[groupKey] || "icon-nonalc";
+        }
+
+        window.toggleDetails = function(cardId) {
+            const details = document.getElementById(cardId);
+            if (details) details.classList.toggle('active');
+        };
+
+        function resetCountryFilters() {
+            currentFilters.color = 'all';
+            currentFilters.sweetness = 'all';
+            if (selectedCountry) {
+                generateDynamicFilters(selectedCountry);
+                renderMobileWineList(selectedCountry);
+            }
+        }
+
+        window.resetAllFilters = function() {
+            currentFilters = { country: 'all', color: 'all', sweetness: 'all', minPrice: 0, maxPrice: 5000 };
+            
+            // Сбрасываем активные кнопки
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filterValue === 'all') {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Сбрасываем слайдеры
+            const minPrice = document.getElementById('minPrice');
+            const maxPrice = document.getElementById('maxPrice');
+            const minLabel = document.getElementById('minPriceLabel');
+            const maxLabel = document.getElementById('maxPriceLabel');
+            
+            if (minPrice) minPrice.value = 0;
+            if (maxPrice) maxPrice.value = 5000;
+            if (minLabel) minLabel.textContent = '0 ₽';
+            if (maxLabel) maxLabel.textContent = '5000 ₽';
+            
+            // Закрываем панель фильтров
+            const panel = document.getElementById('filtersPanel');
+            const burger = document.getElementById('filterBurger');
+            if (panel) panel.classList.remove('active');
+            if (burger) burger.classList.remove('active');
+            
+            // Применяем фильтры
+            applyTopFilters();
+        };
+
+        function showError(message) {
+            console.error('❌', message);
+            document.getElementById('errorMessage').classList.add('active');
+        }
+
+        // ==========================================
+        // ОБРАБОТЧИКИ СОБЫТИЙ
+        // ==========================================
+        function initEventListeners() {
+            // Обработка кликов на фильтры в бургер-меню
+            const filtersPanel = document.getElementById('filtersPanel');
+            if (filtersPanel) {
+                filtersPanel.addEventListener('click', handleFilterClick);
+            }
+            
+            // Обработка кликов на динамические фильтры в мобильной панели
+            const filtersContainer = document.getElementById('filtersContainer');
+            if (filtersContainer) {
+                filtersContainer.addEventListener('click', handleFilterClick);
+            }
+            
+            // Закрытие панели по клику на оверлей
+            const overlay = document.getElementById('overlay');
+            if (overlay) {
+                overlay.addEventListener('click', closeMobilePanel);
+            }
+            
+            // Обновление при ресайзе
+            window.addEventListener('resize', () => {
+                const newIsMobile = window.innerWidth <= 768;
+                if (isMobile !== newIsMobile) {
+                    isMobile = newIsMobile;
+                    if (map) map.invalidateSize();
+                    if (!isMobile && selectedCountry) {
+                        closeMobilePanel();
+                    }
+                }
+            });
+            
+            console.log('✅ Все обработчики инициализированы');
+        }
+
+        function handleFilterClick(e) {
+            if (e.target.classList.contains('filter-btn')) {
+                const filterType = e.target.dataset.filterType;
+                const filterValue = e.target.dataset.filterValue;
+                
+                // Сбрасываем соседние кнопки
+                const siblingButtons = e.target.parentNode.querySelectorAll('.filter-btn');
+                siblingButtons.forEach(b => b.classList.remove('active'));
+                
+                // Активируем текущую
+                e.target.classList.add('active');
+                
+                // Обновляем текущие фильтры
+                currentFilters[filterType] = filterValue;
+                
+                // Применяем фильтры
+                if (filterType === 'country') {
+                    applyTopFilters();
+                }
+                
+                // Если открыта панель страны - обновляем её тоже
+                if (selectedCountry && isMobile) {
+                    generateDynamicFilters(selectedCountry);
+                    renderMobileWineList(selectedCountry);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
